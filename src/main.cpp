@@ -1,6 +1,6 @@
 #define DEBUG             0                   // 1 for debugging, 0 for no debugging
 #define PCSERIAL          Serial              // Primary Serial
-#define SLAVESERIAL       Serial              // Secondary Serial
+#define SLAVESERIAL       Serial2             // Secondary Serial
 #define IDLE_VIDEO_M      0                   // Minutes   
 #define IDLE_VIDEO_S      10                  // Seconds
 #define DELAY             ((IDLE_VIDEO_M*60)+IDLE_VIDEO_S)*1000     // Calculate Delay in milliseconds for idle video
@@ -23,18 +23,20 @@ uint8_t count = 0;                // Counter for data processing
 void processData(String data){    
   // Process data here
   if (DEBUG) { PCSERIAL.println("Processing data: " + data); }
-  if (data.startsWith("A") || data.startsWith("B") || data.startsWith("C") || data.startsWith("D") || data.startsWith("E") || data.startsWith("F") || data.startsWith("G") || data.startsWith("H") ){
-    String number = data.substring(1);
-    int num = number.toInt();
-    count += num; 
-    if (count >= 100){ 
-      PCSERIAL.println("*PLAY#"); 
-      count = 0; 
-      lastUpdate = millis(); 
-      read_flag = false; 
-      return;
-    } 
-    else if (count < 100) { if (DEBUG){PCSERIAL.print("Count: ");} PCSERIAL.println(count); }
+  if (data.startsWith("A") || data.startsWith("B") || data.startsWith("C") || data.startsWith("D") || data.startsWith("E") || data.startsWith("F") || data.startsWith("G") || data.startsWith("H") || data.startsWith("I") || data.startsWith("J") || data.startsWith("K") || data.startsWith("L") ){
+  PCSERIAL.println(data);
+  
+    // String number = data.substring(1);
+    // int num = number.toInt();
+    // count += num; 
+    // if (count >= 100){ 
+    //   PCSERIAL.println("*PLAY#"); 
+    //   count = 0; 
+    //   lastUpdate = millis(); 
+    //   read_flag = false; 
+    //   return;
+    // } 
+    // else if (count < 100) { if (DEBUG){PCSERIAL.print("Count: ");} PCSERIAL.println(count); }
   }
 }
 
@@ -51,7 +53,8 @@ void readSlaveSerial(){
   if(SLAVESERIAL.available()){
     String data = SLAVESERIAL.readStringUntil('\n');
     data.trim();
-    if (DEBUG) { PCSERIAL.println("Received: " + String(data)); }
+    // PCSERIAL.println(data);
+    // if (DEBUG) { PCSERIAL.println("Received: " + String(data)); }
     processData(data);
   }
 }
@@ -63,6 +66,8 @@ void setup() {
 }
 
 void loop() {
-  if (read_flag) { readSlaveSerial();}                      // Read data from slave serial
-  if (millis() - lastUpdate >= DELAY) { read_flag = true; } // Set read_flag to true after delay
+
+  readSlaveSerial();                                      // Read data from slave serial
+  // if (read_flag) { readSlaveSerial();}                      // Read data from slave serial
+  // if (millis() - lastUpdate >= DELAY) { read_flag = true; readSlaveSerial();} // Set read_flag to true after delay
 }
