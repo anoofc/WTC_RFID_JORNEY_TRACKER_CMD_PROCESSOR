@@ -3,6 +3,7 @@
 #define SLAVESERIAL       Serial2             // Secondary Serial
 #define IDLE_VIDEO_M      0                   // Minutes   
 #define IDLE_VIDEO_S      10                  // Seconds
+#define RELAY_PIN         33                   // Relay Pin
 #define DELAY             ((IDLE_VIDEO_M*60)+IDLE_VIDEO_S)*1000     // Calculate Delay in milliseconds for idle video
 
 #include <Arduino.h>              // Include Arduino Library
@@ -59,14 +60,32 @@ void readSlaveSerial(){
   }
 }
 
-void setup() {
-  PCSERIAL.begin(9600);         // Initialize Primary Serial
-  SLAVESERIAL.begin(9600);      // Initialize Secondary Serial
+/**
+ * Reads the state of the RF relay pin and sends a command if it is LOW.
+ * 
+ * This function reads the state of the relay pin and sends a command "*PLAY#" 
+ * to the PCSERIAL if the state is LOW. It also prints the state of the relay pin 
+ * if DEBUG is enabled. The function checks if the time elapsed since the last 
+ * update is less than 500 milliseconds before executing the logic.
+ */
 
+void readRelay(){
+  if (DEBUG){Serial.println(digitalRead(RELAY_PIN));}
+  if (millis() - lastUpdate <500){return;}
+  if (digitalRead(RELAY_PIN) == LOW){
+    PCSERIAL.println("*PLAY#");
+    lastUpdate = millis();
+  }
+}
+
+void setup() {
+  PCSERIAL.begin(9600);               // Initialize Primary Serial
+  SLAVESERIAL.begin(9600);            // Initialize Secondary Serial
+  pinMode(RELAY_PIN, INPUT_PULLUP);   // Set Relay Pin as INPUT_PULLUP
 }
 
 void loop() {
-
+  readRelay();
   readSlaveSerial();                                      // Read data from slave serial
   // if (read_flag) { readSlaveSerial();}                      // Read data from slave serial
   // if (millis() - lastUpdate >= DELAY) { read_flag = true; readSlaveSerial();} // Set read_flag to true after delay
