@@ -1,44 +1,32 @@
 #define DEBUG             0                   // 1 for debugging, 0 for no debugging
 #define PCSERIAL          Serial              // Primary Serial
 #define SLAVESERIAL       Serial2             // Secondary Serial
-#define IDLE_VIDEO_M      0                   // Minutes   
-#define IDLE_VIDEO_S      10                  // Seconds
-#define RELAY_PIN         33                   // Relay Pin
-#define DELAY             ((IDLE_VIDEO_M*60)+IDLE_VIDEO_S)*1000     // Calculate Delay in milliseconds for idle video
+#define PLAY_PIN         33                   // Relay Pin
+#define RESET_PIN         18                   // Reset Pin
 
 #include <Arduino.h>              // Include Arduino Library
 
-bool read_flag = true;            // Flag to read data from slave serial
 unsigned long lastUpdate = 0;     // Last update time
-uint8_t count = 0;                // Counter for data processing
+
 
 /**
- * Process the given data.
+ * Processes the given data string and prints it if it starts with a character from 'A' to 'H'.
  * 
- * This function processes the provided data by checking if it starts with any of the letters 'A' to 'H'. 
- * If it does, it extracts the number from the data and adds it to the 'count' variable. 
- * If the 'count' variable reaches or exceeds 100, it prints "*PLAY#" to the PCSERIAL and resets the 'count' to 0. 
- * It also updates the 'lastUpdate' variable with the current millis() value, sets the 'read_flag' to false, and returns.
- * If the 'count' is less than 100, it prints the current 'count' value to the PCSERIAL if DEBUG is enabled.
+ * This function checks if the input data string starts with any character from 'A' to 'H'. If it does,
+ * the data string is printed to the serial output. Additionally, if debugging is enabled, it prints
+ * a message indicating that the data is being processed.
  */
 void processData(String data){    
   // Process data here
   if (DEBUG) { PCSERIAL.println("Processing data: " + data); }
-  if (data.startsWith("A") || data.startsWith("B") || data.startsWith("C") || data.startsWith("D") || data.startsWith("E") || data.startsWith("F") || data.startsWith("G") || data.startsWith("H") || data.startsWith("I") || data.startsWith("J") || data.startsWith("K") || data.startsWith("L") ){
-  PCSERIAL.println(data);
-  
-    // String number = data.substring(1);
-    // int num = number.toInt();
-    // count += num; 
-    // if (count >= 100){ 
-    //   PCSERIAL.println("*PLAY#"); 
-    //   count = 0; 
-    //   lastUpdate = millis(); 
-    //   read_flag = false; 
-    //   return;
-    // } 
-    // else if (count < 100) { if (DEBUG){PCSERIAL.print("Count: ");} PCSERIAL.println(count); }
+  for (char c = 'A'; c <= 'H'; c++) {
+    if (data.startsWith(String(c))) {
+      PCSERIAL.println(data);
+    }
   }
+  // if (data.startsWith("A") || data.startsWith("B") || data.startsWith("C") || data.startsWith("D") || data.startsWith("E") || data.startsWith("F") || data.startsWith("G") || data.startsWith("H") || data.startsWith("I") || data.startsWith("J") || data.startsWith("K") || data.startsWith("L") ){
+  //   PCSERIAL.println(data);
+  // }
 }
 
 /**
@@ -61,19 +49,22 @@ void readSlaveSerial(){
 }
 
 /**
- * Reads the state of the RF relay pin and sends a command if it is LOW.
- * 
- * This function reads the state of the relay pin and sends a command "*PLAY#" 
- * to the PCSERIAL if the state is LOW. It also prints the state of the relay pin 
- * if DEBUG is enabled. The function checks if the time elapsed since the last 
- * update is less than 500 milliseconds before executing the logic.
+ * Reads the state of the RF remote control buttons and sends commands via serial.
+ *
+ * This function checks the state of the PLAY and RESET pins connected to the RF remote control.
+ * If the PLAY button is pressed (pin is LOW), it sends the "ZVIP" command via the PC serial interface.
+ * If the RESET button is pressed (pin is LOW), it sends the "R" command via the PC serial interface.
+ * The function ensures that commands are not sent more frequently than every 500 milliseconds.
  */
-
-void readRelay(){
-  if (DEBUG){Serial.println(digitalRead(RELAY_PIN));}
+void readRFRemote(){
+  // if (DEBUG){Serial.println(digitalRead(PLAY_PIN));}
   if (millis() - lastUpdate <500){return;}
-  if (digitalRead(RELAY_PIN) == LOW){
-    PCSERIAL.println("*PLAY#");
+  if (digitalRead(PLAY_PIN) == LOW){
+    PCSERIAL.println("ZVIP");
+    lastUpdate = millis();
+  } 
+  if (digitalRead(RESET_PIN) == LOW){
+    PCSERIAL.println("R");
     lastUpdate = millis();
   }
 }
@@ -81,12 +72,11 @@ void readRelay(){
 void setup() {
   PCSERIAL.begin(9600);               // Initialize Primary Serial
   SLAVESERIAL.begin(9600);            // Initialize Secondary Serial
-  pinMode(RELAY_PIN, INPUT_PULLUP);   // Set Relay Pin as INPUT_PULLUP
+  pinMode(PLAY_PIN, INPUT_PULLUP);   // Set Relay Pin as INPUT_PULLUP
+  pinMode(RESET_PIN, INPUT_PULLUP);   // Set Reset Pin as INPUT_PULLUP
 }
 
 void loop() {
-  readRelay();
+  readRFRemote();
   readSlaveSerial();                                      // Read data from slave serial
-  // if (read_flag) { readSlaveSerial();}                      // Read data from slave serial
-  // if (millis() - lastUpdate >= DELAY) { read_flag = true; readSlaveSerial();} // Set read_flag to true after delay
 }
